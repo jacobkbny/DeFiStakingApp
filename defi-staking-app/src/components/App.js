@@ -6,6 +6,7 @@ import Tether from "../truffle_abis/Tether.json";
 import Voltex from "../truffle_abis/Voltex.json";
 import DecentralBank from "../truffle_abis/DecentralBank.json";
 import Main from "./Main";
+import ParticleSettings from "./ParticleSettings";
 class App extends Component {
   async UNSAFE_componentWillMount() {
     await this.loadWeb3();
@@ -66,6 +67,8 @@ class App extends Component {
         decentralBankData.address
       );
       this.setState({ decentralBank: decentralBank });
+      let owner = await decentralBank.methods.owner().call();
+      this.setState({ owner: owner });
       let stakingBalance = await decentralBank.methods
         .stakingBalance(this.state.account)
         .call();
@@ -85,18 +88,23 @@ class App extends Component {
 
   //staking function
   stakeTokens = (amount) => {
-    this.setState({loading: true })
-    this.state.tether.methods.approve(this.state.decentralBank._address, amount).send({from: this.state.account}).on('transactionHash', (hash) => {
-      this.state.decentralBank.methods.depositeTokens(amount).send({from: this.state.account}).on('transactionHash', (hash) => {
-        this.setState({loading:false})
-      })
-    }) 
-  }
+    this.setState({ loading: true });
+    this.state.tether.methods
+      .approve(this.state.decentralBank._address, amount)
+      .send({ from: this.state.account })
+      .on("transactionHash", (hash) => {
+        this.state.decentralBank.methods
+          .depositeTokens(amount)
+          .send({ from: this.state.account })
+          .on("transactionHash", (hash) => {
+            this.setState({ loading: false });
+          });
+      });
+  };
   //unstaking function
   unstakeTokens = () => {
     this.setState({ loading: true });
-    this.state.decentralBank
-      .methods
+    this.state.decentralBank.methods
       .unstakeTokens()
       .send({ from: this.state.account })
       .on("transactionHash", (hash) => {
@@ -104,7 +112,17 @@ class App extends Component {
       });
   };
 
-  // UnstakeToken
+  issueTokens = () => {
+    console.log(`decentralBank Address : ${this.state.decentralBank._address}`);
+    console.log(`owner:${this.state.owner}`);
+    this.setState({ loading: true });
+    this.state.decentralBank.methods
+      .issueTokens()
+      .send({ from: this.state.account })
+      .on("transactionHash", (hash) => {
+        this.setState({ loading: false });
+      });
+  };
 
   constructor(props) {
     super(props);
@@ -116,6 +134,7 @@ class App extends Component {
       tetherBalance: "0",
       voltexBalance: "0",
       stakingBalance: "0",
+      owner: "0x00000000",
       loading: true,
     };
   }
@@ -126,8 +145,12 @@ class App extends Component {
     {
       this.state.loading
         ? (content = (
-            <p id="loader" className="text-center" style={{ margin: "30px" }}>
-              Loading ....
+            <p
+              id="loader"
+              className="text-center"
+              style={{ margin: "30px", color: "white" }}
+            >
+              Loading Please Wait....
             </p>
           ))
         : (content = (
@@ -136,12 +159,16 @@ class App extends Component {
               voltexBalance={this.state.voltexBalance}
               stakingBalance={this.state.stakingBalance}
               stakeTokens={this.stakeTokens}
-              unstakeTokens={this.unstakeTokens} 
+              unstakeTokens={this.unstakeTokens}
+              issueTokens={this.issueTokens}
             />
           ));
     }
     return (
-      <div>
+      <div className="App" style={{ position: "relative" }}>
+        <div style={{ position: "absolute" }}>
+          <ParticleSettings />
+        </div>
         <Navbar account={this.state.account} />
         <div className="container-fluid mt-5">
           <div className="row">
